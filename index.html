@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Chilly</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Chilly - Guide the penguin through his slippery maze.">
+    <meta name="keywords" content="game, recreational, glissade, puzzle, penguin, chilly, all ages">
+    <meta name="author" content="Oliver Lau">
+    <meta name="copyright" content="Oliver Lau">
+    <meta name="robots" content="index,nofollow">
+    <meta name="google" content="nopagereadaloud">
+    <meta name="googlebot" content="notranslate">
+    <link rel="stylesheet" href="tiles.css">
+    <link rel="icon" href="static/images/favicon.ico" />
+    <link rel="icon" sizes="32x32" href="static/images/chilly-32.png" />
+    <link rel="icon" sizes="48x48" href="static/images/chilly-48.png" />
+    <link rel="icon" sizes="64x64" href="static/images/chilly-64.png" />
+    <link rel="icon" sizes="96x96" href="static/images/chilly-96.png" />
+    <link rel="icon" sizes="128x128" href="static/images/chilly-128.png" />
+    <link rel="icon" sizes="192x192" href="static/images/chilly-192.png" />
+    <link rel="apple-touch-icon-precomposed" href="static/images/chilly-80x80.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="static/images/chilly-152.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="167x167" href="static/images/chilly-167.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="180x180" href="static/images/chilly-180.png" />
+    <meta name="apple-mobile-web-app-title" content="Chilly">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <script async src="static/js/howler.core.min.js"></script>
+    <script async src="static/js/bezier.min.js"></script>
+    <script async src="graph.js"></script>
+    <script async src="queue.js"></script>
+    <script async src="chilly.js"></script>
+    <script async src="index.js"></script>
+    <style>
+        :root {
+            --text-color: #080808;
+            --faint-text-color: #588997;
+            --background-color: #B0E8F8;
+        }
+
+        @font-face {
+            font-family: 'VT323';
+            src: url('static/fonts/VT323-Regular.ttf') format('truetype');
+            font-display: swap;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            font-family: 'VT323', monospace;
+            font-size: 32px;
+        }
+
+        #main-container {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-items: center;
+            justify-content: center;
+            align-items: center;
+            align-content: center;
+        }
+
+        #overlay {
+            background-color: black;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.4;
+            z-index: 1000;
+        }
+
+        #overlay-box {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: transparent;
+            z-index: 1004;
+        }
+
+        .dialog {
+            opacity: unset;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .dialog>div {
+            background-color: var(--background-color);
+            border: 5px solid var(--background-color);
+            padding: 20px;
+            cursor: pointer;
+            margin: 0 20%;
+            box-sizing: content-box;
+            max-height: 75vh;
+            overflow: scroll;
+        }
+
+        .dialog>div>div {
+            margin-bottom: 20px;
+        }
+
+        .locked {
+            color: var(--faint-text-color);
+            cursor: not-allowed;
+        }
+
+        .pulsating {
+            animation-name: pulsate;
+            animation-duration: 250ms;
+            animation-timing-function: ease-in-out;
+            animation-fill-mode: both;
+            animation-direction: alternate;
+            animation-iteration-count: infinite;
+            cursor: pointer;
+        }
+
+        @keyframes pulsate {
+            0% {
+                color: inherit;
+                text-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2);
+            }
+
+            100% {
+                color: #2e6372;
+                text-shadow: 0px 0px 5px rgba(255, 255, 255, 1.0);
+            }
+        }
+
+        .star.pulse {
+            animation-name: star-pulse;
+            animation-duration: 340ms;
+            animation-timing-function: cubic-bezier(.21, .66, .9, 1.1);
+            animation-fill-mode: both;
+            animation-iteration-count: 1;
+        }
+
+        .star.pulse.pulse1 {
+            animation-delay: 50ms;
+        }
+
+        .star.pulse.pulse2 {
+            animation-delay: 100ms;
+        }
+
+        @keyframes star-pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(2);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        #game-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #game {
+            position: relative;
+            padding: 2px;
+            width: fit-content;
+            border: 3px solid #440B7D;
+        }
+
+        #game>div {
+            display: grid;
+        }
+
+        p {
+            margin: 10px;
+        }
+
+        #level-stats,
+        #extras {
+            margin: 6px 0 0 6px;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-content: space-between;
+            width: 100%;
+        }
+
+        #controls {
+            grid-area: controls;
+            display: grid;
+            margin: 10px 0 0 10px;
+            grid-template-columns: repeat(3, 32px);
+            grid-template-rows: repeat(3, 32px);
+            width: fit-content;
+        }
+
+        #moves {
+            overflow-wrap: anywhere;
+        }
+
+        .penguin {
+            position: absolute;
+            transition-property: transform, opacity;
+            transition-timing-function: cubic-bezier(0.785, 0.135, 0.15, 0.86);
+            transition-duration: 140ms;
+        }
+
+        .submerged {
+            opacity: .4;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #menu,
+        #extras {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-content: space-between;
+        }
+
+        #path {
+            font-size: 65%;
+            max-width: fit-content;
+            letter-spacing: .07em;
+            margin-right: 0.5em;
+        }
+
+        .level-list {
+            text-align: left;
+            overflow-x: hidden;
+            overflow-y: auto;
+            white-space: pre;
+        }
+
+        .level-list .marked {
+            background-color: var(--text-color);
+            color: var(--background-color);
+        }
+
+        button {
+            padding: 5px;
+            height: 32px;
+            border-radius: 0;
+            border: 2px solid var(--text-color);
+            cursor: pointer;
+        }
+
+        .hint {
+            z-index: 1002;
+            opacity: 0.7;
+            pointer-events: none;
+            position: absolute;
+        }
+
+        .final {
+            font-size: 161%;
+        }
+
+        .line {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0.8;
+        }
+
+        .visited {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0.2;
+        }
+
+        .interactive {
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="main-container">
+        <div id="game-container">
+            <div id="menu">
+                <span>
+                    <span class="interactive tile speaker-muted" id="loudspeaker" title="Audio on/off"></span>
+                    <span class="interactive tile help" id="help" title="Help"></span>
+                </span>
+                <span id="level-num"></span>
+                <span>
+                    <span class="interactive tile restart" id="restart-level" title="Restart level"></span>
+                    <span class="interactive tile hamburger" id="choose-level" title="Choose level"></span>    
+                </span>
+            </div>
+            <div id="level-stats">
+                <div>Total <span id="total-score" title="total score">0</span></div>
+                <div>Score <span id="level-score" title="score">0</span></div>
+                <div>Moves <span id="move-count" title="# moves">0</span></div>
+            </div>
+            <div id="game"></div>
+            <div id="extras">
+                <!-- <button id="find-route">Find route</button> -->
+                <!-- <button id="bfs">BFS Animation</button> -->
+                <span id="path"></span>
+            </div>
+        </div>
+        <div id="controls" class="hidden">
+            <div class="tile empty"></div>
+            <div class="interactive tile arrow-up"></div>
+            <div class="tile empty"></div>
+            <div class="interactive tile arrow-left"></div>
+            <div class="tile empty"></div>
+            <div class="interactive tile arrow-right"></div>
+            <div class="tile empty"></div>
+            <div class="interactive tile arrow-down"></div>
+            <div class="tile empty"></div>
+        </div>
+    </div>
+    <div id="overlay" class="hidden"></div>
+    <div id="overlay-box" class="hidden"></div>
+
+    <template id="splash">
+        <div class="dialog">
+            <div>
+                <div>Chilly, the penguin, needs your help. Guide him to the green exit fields by pushing him around!
+                </div>
+                <div>Find the routes with the least moves.</div>
+                <div class="pulsating" data-command="proceed">Tap here or [SPACE] to start the glissade.</div>
+            </div>
+        </div>
+    </template>
+    <template id="congrats">
+        <div class="dialog">
+            <div>
+                <div>Well done!</div>
+                <div class="stars">
+                    <span class="tile star-pale"></span>
+                    <span class="tile star-pale"></span>
+                    <span class="tile star-pale"></span>
+                </div>
+                <div>You’ve earned <span class="points-earned"></span> points</div>
+                <div class="pulsating" data-command="proceed">Tap here or [SPACE] to continue with level <span></span>.
+                </div>
+                <div class="pulsating" data-command="replay">Tap here or [R] to replay this level.</div>
+                <div class="final" data-command="restart">Congratulations!<br>You’ve reached the final exit.</div>
+            </div>
+        </div>
+    </template>
+    <template id="settings">
+        <div class="dialog">
+            <div>
+                <div>Choose level:</div>
+                <div class="level-list"></div>
+            </div>
+        </div>
+    </template>
+    <script id="levels" type="application/json">
+      [
+        {
+            "thresholds": [
+              144,
+              150,
+              170
+            ],
+            "basePoints": 121,
+            "name": "Merry Xmas",
+            "data": [
+              "TT T#T   #T#T#T#T #   T #T#  #TT  #T$  #",
+              "T     #     $                          T",
+              "T       $  T TT  TT##T#TT   T  T  T  T  ",
+              "   T     T   T  T         T$            ",
+              "#T     T   O   T$TT##TTTT   TT T        ",
+              "  $ T                           T   T   ",
+              "#                TT#TTTTT$             T",
+              "     T  T    TT$                  T$    ",
+              " T          T$   T#TT#T#T  T#          #",
+              "        T    T T         #      T      O",
+              "# T     #    T   T##TTTT# T T      T#T $",
+              "    T T              P         # $     #",
+              "#          TT    T##T#TTT T   T    T T #",
+              "     TTT   T   T       $     #   T   T T",
+              "T  #$        T  #T###TT#T T TT          ",
+              "   ## T   T     T        T T        T T#",
+              "  #T        #  T#T##TT#T#  T T    T     ",
+              "T T  T T T  #                # TT T    #",
+              "     T   #   T   TT#TTTTT T# T       T  ",
+              "T  T       #  #     $           T   TTT ",
+              "   T  T      T  #T##TTT## T  T#     T   ",
+              "#   T    T    T T        TTT  T TT     T",
+              "$T  #T    T    T TT#TT### T  T        T ",
+              "# T T#    T #T            TT   T T T    ",
+              "#        T  $    T###T#TT            T  ",
+              "   T T        T        #  T     T    TT ",
+              "T T T  ##   T T  T  T  T$T    T  T T  $ ",
+              "   TT  T      T T $# T T   TT        T T",
+              "      #TT  T                T    #     T",
+              "  T        TTT T T T  T#T           T  T",
+              "T  T    T      T             T T      TT",
+              "#T   T        T  T TT # TT  TT  #      #",
+              "#   T    ##    $   TT    #  #  T# T     ",
+              " T     T     T TT TT#T      T   T       ",
+              " # T              T T   T  #T T #  TT T#",
+              "T  T      T T #    T  T   $            T",
+              "T      TT       #        # #  T       TT",
+              "# T         T      T          # T  T   #",
+              "T$ O           T     T     T    T      X",
+              " T #   # T    #T# #  ##   T  T  $ # #TTT"
+            ],
+            "connections": [
+              {
+                "src": {
+                  "x": 39,
+                  "y": 9
+                },
+                "dst": {
+                  "x": 3,
+                  "y": 38
+                }
+              },
+              {
+                "src": {
+                  "x": 3,
+                  "y": 38
+                },
+                "dst": {
+                  "x": 11,
+                  "y": 4
+                }
+              },
+              {
+                "src": {
+                  "x": 11,
+                  "y": 4
+                },
+                "dst": {
+                  "x": 39,
+                  "y": 9
+                }
+              }
+            ]
+          }
+    ]
+    </script>
+</body>
+
+</html>
