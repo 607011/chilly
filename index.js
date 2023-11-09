@@ -153,18 +153,11 @@ import('./static/js/howler.core.min.js');
     }
 
     function scrollIntoView() {
-        // el.game.scrollTo({
-        //     top: -400,
-        //     left: 100,
-        //     behavior: "smooth",
-        //   });
-        // level.width * Tile.Size
-        // el.game.clientWidth / 2
-       player.el.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-        inline: 'center',
-       });
+        player.el.scrollIntoView({
+            behavior: 'auto',
+            block: 'center',
+            inline: 'center',
+        });
     }
 
     function standUpright() {
