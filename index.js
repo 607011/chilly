@@ -73,6 +73,7 @@ import('./static/js/howler.core.min.js');
 
     let LEVELS;
     const START_LEVEL = 0;
+    const DeceleratingEasing = bezier(.34, .87, 1, 1);
     const el = {};
     let player = {
         x: 0,
@@ -116,7 +117,7 @@ import('./static/js/howler.core.min.js');
     let isMoving = false;
     let exitReached = false;
     let holeEntered = false;
-    let easing = bezier(.34, .87, 1, 1);
+    let easing = DeceleratingEasing;
     let sounds = {};
 
     function squared(x) {
@@ -305,6 +306,7 @@ import('./static/js/howler.core.min.js');
             else {
                 player.dest = { x, y };
             }
+            easing = DeceleratingEasing;
             animationDuration = 100 * dist;
             t0 = performance.now();
             t1 = t0 + animationDuration;
