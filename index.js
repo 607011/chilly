@@ -181,7 +181,7 @@ import('./static/js/howler.core.min.js');
         player.el.style.transform = `rotate(${angle + Math.PI / 2}rad)`;
         standUpright();
         const dist = Math.sqrt(squared(player.x - player.dest.x) + squared(player.y - player.dest.y));
-        animationDuration = 150 * dist;
+        animationDuration = 100 * dist;
         t0 = performance.now();
         t1 = t0 + animationDuration;
         isMoving = true;
