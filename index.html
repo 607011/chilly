@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 
 <head>
     <meta charset="utf-8">
     <title>Chilly</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Chilly - Guide the penguin through his slippery maze.">
+    <meta name="description" content="Chilly - Führe den Pinguin über alle Geschenke zum Ausgang.">
     <meta name="keywords" content="game, recreational, glissade, puzzle, penguin, chilly, all ages">
     <meta name="author" content="Oliver Lau">
     <meta name="copyright" content="Oliver Lau">
@@ -27,11 +27,8 @@
     <meta name="apple-mobile-web-app-title" content="Chilly">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <script async src="static/js/howler.core.min.js"></script>
-    <script async src="static/js/bezier.min.js"></script>
-    <script async src="graph.js"></script>
-    <script async src="queue.js"></script>
-    <script async src="chilly.js"></script>
+    <script src="static/js/howler.core.min.js"></script>
+    <script src="static/js/bezier.min.js"></script>
     <script async src="index.js"></script>
     <style>
         :root {
@@ -174,7 +171,12 @@
             }
         }
 
+        #scroll-container {
+            position: relative;
+        }
+
         #game-container {
+            position: relative;
             display: flex;
             flex-direction: column;
         }
@@ -183,7 +185,11 @@
             position: relative;
             padding: 2px;
             width: fit-content;
+            border: none;
             border: 3px solid #440B7D;
+            overflow: scroll;
+            max-height: calc(100vh - 220px);
+            max-width: calc(100vw - 50px);
         }
 
         #game>div {
@@ -241,7 +247,7 @@
         }
 
         #path {
-            font-size: 65%;
+            font-size: 50%;
             max-width: fit-content;
             letter-spacing: .07em;
             margin-right: 0.5em;
@@ -304,23 +310,21 @@
             <div id="menu">
                 <span>
                     <span class="interactive tile speaker-muted" id="loudspeaker" title="Audio on/off"></span>
-                    <span class="interactive tile help" id="help" title="Help"></span>
                 </span>
-                <span id="level-num"></span>
+                <span style="opacity: 0.5" id="level-num"></span>
                 <span>
-                    <span class="interactive tile restart" id="restart-level" title="Restart level"></span>
-                    <span class="interactive tile hamburger" id="choose-level" title="Choose level"></span>    
+                    <span class="interactive tile restart" id="restart-level" title="Level von vorne beginnen"></span>
                 </span>
             </div>
             <div id="level-stats">
-                <div>Total <span id="total-score" title="total score">0</span></div>
-                <div>Score <span id="level-score" title="score">0</span></div>
-                <div>Moves <span id="move-count" title="# moves">0</span></div>
+                <div style="opacity: 0.5">Total <span id="total-score" title="total score">0</span></div>
+                <div style="opacity: 0.5">Score <span id="level-score" title="score">0</span></div>
+                <div>Züge <span id="move-count" title="# moves">0</span></div>
             </div>
-            <div id="game"></div>
+            <div id="scroll-container">
+                <div id="game"></div>
+            </div>
             <div id="extras">
-                <!-- <button id="find-route">Find route</button> -->
-                <!-- <button id="bfs">BFS Animation</button> -->
                 <span id="path"></span>
             </div>
         </div>
@@ -342,34 +346,38 @@
     <template id="splash">
         <div class="dialog">
             <div>
-                <div>Chilly, the penguin, needs your help. Guide him to the green exit fields by pushing him around!
+                <div>Chilly, der Pinguin, braucht deine Hilfe. Führe ihn über alle Geschenke zum grünen Feld mit dem
+                    Ausgang!
                 </div>
-                <div>Find the routes with the least moves.</div>
-                <div class="pulsating" data-command="proceed">Tap here or [SPACE] to start the glissade.</div>
+                <div>Wähle dabei die Route mit den wenigsten Zügen.</div>
+                <div class="pulsating" data-command="proceed">Hier drücken oder [LEERTASTE], um die Rutschpartie zu
+                    starten.</div>
             </div>
         </div>
     </template>
     <template id="congrats">
         <div class="dialog">
             <div>
-                <div>Well done!</div>
+                <div>Gut gemacht!</div>
                 <div class="stars">
                     <span class="tile star-pale"></span>
                     <span class="tile star-pale"></span>
                     <span class="tile star-pale"></span>
                 </div>
-                <div>You’ve earned <span class="points-earned"></span> points</div>
-                <div class="pulsating" data-command="proceed">Tap here or [SPACE] to continue with level <span></span>.
+                <div class="pulsating" style="visibility: hidden" data-command="proceed">Tap here or [SPACE] to continue
+                    with level <span></span>.
                 </div>
-                <div class="pulsating" data-command="replay">Tap here or [R] to replay this level.</div>
-                <div class="final" data-command="restart">Congratulations!<br>You’ve reached the final exit.</div>
+                <div class="pulsating" data-command="replay">Hier klicken oder [R], um den Level noch einmal zu spielen.
+                </div>
+                <div class="final" style="visibility: hidden" data-command="restart">Gratulation!<br>Du hast den letzten
+                    Ausgang erreicht.</div>
             </div>
         </div>
     </template>
     <template id="settings">
         <div class="dialog">
             <div>
-                <div>Choose level:</div>
+                <div>Level wählen:</div>
                 <div class="level-list"></div>
             </div>
         </div>
