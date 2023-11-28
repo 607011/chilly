@@ -458,7 +458,6 @@ import('./static/js/howler.core.min.js');
                 const item = row[x];
                 const tile = document.createElement('span');
                 tile.className = 'tile';
-                tile.setAttribute('title', `${x},${y}`)
                 switch (item) {
                     case Tile.Rock:
                         tile.classList.add('rock');
