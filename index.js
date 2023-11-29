@@ -23,6 +23,8 @@
 import('./static/js/bezier.min.js');
 import('./static/js/howler.core.min.js');
 
+window.exports = null;
+
 (function (window) {
     "use strict";
 
@@ -59,6 +61,7 @@ import('./static/js/howler.core.min.js');
         static GameEnd = 3;
         static SettingsScreen = 4;
         static ProgressScreen = 5;
+        static Autoplay = 6;
     }
 
     class StorageKey {
@@ -81,7 +84,6 @@ import('./static/js/howler.core.min.js');
         world: { x: 0, y: 0 },
         dest: { x: 0, y: 0 },
         el: null,
-        score: 0,
         moves: [],
         distance: 0,
         movementBounds: {
@@ -91,6 +93,8 @@ import('./static/js/howler.core.min.js');
             bottom: 0,
         },
     };
+    let autoplayIdx = 0;
+    let autoplayMoves = '';
     let level = {
         origData: [],
         connections: [],
@@ -100,7 +104,7 @@ import('./static/js/howler.core.min.js');
             }
         },
         data: [],
-        score: 0,
+        world: { width: 0, height: 0 },
         width: 0,
         height: 0,
         cellAt: function (x, y) {
@@ -111,7 +115,6 @@ import('./static/js/howler.core.min.js');
     let state = State.PreInit;
     let prevState;
     let t0, t1, animationDuration;
-    let pointsEarned;
     let tiles = [[]];
     let holes = [];
     let isMoving = false;
@@ -134,22 +137,21 @@ import('./static/js/howler.core.min.js');
     }
 
     function placePlayerOnPixel(x, y) {
-        player.world.x = Tile.Size * player.x;
-        player.world.y = Tile.Size * player.y + 1;
+        player.world.x = (Tile.Size * x + level.world.width) % level.world.width;
+        player.world.y = (Tile.Size * y + 1 + level.world.height) % level.world.height;
         player.el.style.left = `${player.world.x}px`;
         player.el.style.top = `${player.world.y}px`;
         scrollIntoView();
     }
 
     function placePlayerOnTile(x, y) {
-        console.debug(`placePlayerOnTile(${x}, ${y})`)
         player.x = (x + level.width) % level.width;
         player.y = (y + level.height) % level.height;
         placePlayerOnPixel(player.x, player.y);
     }
 
     function onResize(e) {
-        console.debug(player.world.x, level.width * Tile.Size, el.game.scrollWidth, getComputedStyle(el.game).width);
+        // console.debug(player.world.x, level.width * Tile.Size, el.game.scrollWidth, getComputedStyle(el.game).width);
     }
 
     function scrollIntoView() {
@@ -198,6 +200,7 @@ import('./static/js/howler.core.min.js');
             player.el.classList.remove('submerged');
             player.el.style.transform = 'rotate(0rad)';
             isMoving = false;
+            checkAutoplay();
         }
         else {
             requestAnimationFrame(animateDive);
@@ -207,12 +210,22 @@ import('./static/js/howler.core.min.js');
     function rockHit() {
         sounds.rock.play();
         standUpright();
+        checkAutoplay();
+    }
+
+    function checkAutoplay() {
+        if (state === State.Autoplay) {
+            if (autoplayIdx < autoplayMoves.length) {
+                moveTo(autoplayMoves[++autoplayIdx]);
+            }
+            else {
+                restoreState();
+            }
+        }
     }
 
     function updateMoveCounter() {
         const path = player.moves.join('')
-        el.moveCount.title = path;
-        el.moveCount.textContent = player.moves.length;
         el.path.textContent = path;
     }
 
@@ -226,12 +239,16 @@ import('./static/js/howler.core.min.js');
         if (level.data[y][x] === Tile.Coin) {
             tiles[y][x].classList.replace('present', 'ice');
             level.data[y] = level.data[y].substring(0, x) + Tile.Ice + level.data[y].substring(x + 1);
-            player.score += POINTS[Tile.Coin];
-            el.levelScore.textContent = player.score;
             sounds.coin.play();
         }
         player.world.x = Tile.Size * ((player.x + dx + level.width) % level.width);
         player.world.y = Tile.Size * ((player.y + dy + level.height) % level.height);
+        if (player.world.x < 0 || player.world.y < 0 || player.world.x > level.world.width - Tile.Size || player.world.y > level.world.height - Tile.Size) {
+            player.el.classList.add('hidden');
+        }
+        else {
+            player.el.classList.remove('hidden');
+        }
         player.el.style.left = `${player.world.x}px`;
         player.el.style.top = `${player.world.y}px`;
         scrollIntoView();
@@ -322,6 +339,25 @@ import('./static/js/howler.core.min.js');
 
     function moveRight() {
         return move(+1, 0);
+    }
+
+    function moveTo(direction) {
+        direction = direction.toUpperCase();
+        player.moves.push(direction);
+        switch (direction) {
+            case 'U':
+                moveUp();
+                break;
+            case 'D':
+                moveDown();
+                break;
+            case 'L':
+                moveLeft();
+                break;
+            case 'R':
+                moveRight();
+                break;
+        }
     }
 
     function onKeyPressed(e) {
@@ -445,6 +481,23 @@ import('./static/js/howler.core.min.js');
         // console.debug(e);
     }
 
+    function autoplay() {
+        if (autoplayMoves.length === 0)
+            return;
+        restartGame();
+        autoplayIdx = 0;
+        setState(State.Autoplay);
+        moveTo(autoplayMoves[0]);
+    }
+
+    window.exports = {
+        autoplay: function (moves) {
+            autoplayMoves = moves;
+            player.moves = [];
+            autoplay();
+        },
+    };
+
     function generateScene() {
         const scene = document.createElement('div');
         scene.style.gridTemplateColumns = `repeat(${level.width}, ${Tile.Size}px)`;
@@ -511,16 +564,6 @@ import('./static/js/howler.core.min.js');
         return numStars;
     }
 
-    function animatePointsEarned() {
-        const ANIMATION_DURATION = 750;
-        const dt = performance.now() - t0;
-        const f = dt / ANIMATION_DURATION;
-        el.pointsEarned.textContent = Math.round(f * pointsEarned);
-        if (dt < ANIMATION_DURATION) {
-            window.requestAnimationFrame(animatePointsEarned);
-        }
-    }
-
     function onExitReached() {
         sounds.exit.play();
         standUpright();
@@ -539,18 +582,17 @@ import('./static/js/howler.core.min.js');
         congrats.querySelector('div>div>div').innerHTML = (function (numStars) {
             switch (numStars) {
                 case 0:
-                    return 'Awww ... you could do better';
+                    return 'Danke für die Hilfe! Aber da geht noch so Einiges ...';
                 case 1:
-                    return 'Well done, but there&rsquo;s room for improvement.';
+                    return 'Gar nicht übel, aber es gibt noch Raum für Verbesserungen.';
                 case 2:
-                    return 'Good job! But you could do a tiny bit better.';
+                    return 'Gute Arbeit! Du liegst ziemlich weit vorn mit dem Ergebnis.';
                 case 3:
-                    return 'Excellent! You’ve scored perfectly.';
+                    return 'Wow! Du bist ein herausragender Pinguin-Lotse!';
                 default:
                     return;
             }
         })(numStars);
-        el.pointsEarned = congrats.querySelector('.points-earned');
         el.proceed = congrats.querySelector('[data-command="proceed"]');
         if (level.currentIdx + 1 < LEVELS.length) {
             congrats.querySelector('[data-command="restart"]').remove();
@@ -564,8 +606,6 @@ import('./static/js/howler.core.min.js');
         el.replay.addEventListener('click', replayLevel, { capture: true, once: true });
         el.overlayBox.replaceChildren(congrats);
         t0 = performance.now();
-        pointsEarned = getLevelScore();
-        animatePointsEarned();
         showOverlay();
     }
 
@@ -575,13 +615,14 @@ import('./static/js/howler.core.min.js');
         level.origData = [...levelData.data];
         level.width = level.data[0].length;
         level.height = level.data.length;
+        level.world.width = Tile.Size * level.width;
+        level.world.height = Tile.Size * level.height;
         if (level.connections instanceof Array) {
             for (const conn of level.connections) {
                 console.assert(level.cellAt(conn.src.x, conn.src.y) === Tile.Hole);
                 console.assert(level.cellAt(conn.dst.x, conn.dst.y) === Tile.Hole);
             }
         }
-        el.levelNum.textContent = `Level ${level.currentIdx + 1}`;
         player.moves = [];
         player.distance = 0;
         updateMoveCounter();
@@ -620,7 +661,6 @@ import('./static/js/howler.core.min.js');
 
     function replayLevel() {
         el.replay.addEventListener('click', replayLevel, { capture: true, once: true });
-        player.score -= level.score;
         resetLevel();
         play();
     }
@@ -634,10 +674,6 @@ import('./static/js/howler.core.min.js');
         return maxLvl;
     }
 
-    function getLevelScore() {
-        return (getNumStars() + 1) * (level.score + LEVELS[level.currentIdx].basePoints);
-    }
-
     function gotoLevel(idx) {
         level.currentIdx = idx;
         localStorage.setItem(StorageKey.LevelNum, level.currentIdx);
@@ -647,8 +683,6 @@ import('./static/js/howler.core.min.js');
 
     function gotoNextLevel() {
         el.proceed.removeEventListener('click', gotoNextLevel);
-        player.score += pointsEarned;
-        el.totalScore.textContent = player.score;
         ++level.currentIdx;
         localStorage.setItem(StorageKey.LevelNum, level.currentIdx);
         localStorage.setItem(StorageKey.MaxLevelNum, maxLevelNum() + 1);
@@ -694,9 +728,6 @@ import('./static/js/howler.core.min.js');
 
     function resetLevel() {
         exitReached = false;
-        level.score = 0;
-        el.levelScore.textContent = '0';
-        el.totalScore.textContent = player.score;
         let levelData = LEVELS[level.currentIdx];
         el.path.textContent = '';
         if (window.location.hash) {
@@ -762,9 +793,7 @@ import('./static/js/howler.core.min.js');
         el.game = document.querySelector('#game');
         el.game.addEventListener('click', onClick);
         el.game.addEventListener('mousemove', onMouseMove);
-        el.totalScore = document.querySelector('#total-score');
-        el.levelScore = document.querySelector('#level-score');
-        el.levelNum = document.querySelector('#level-num');
+
         el.moveCount = document.querySelector('#move-count');
         el.extras = document.querySelector('#extras');
         el.path = document.querySelector('#path');
