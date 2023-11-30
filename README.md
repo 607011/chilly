@@ -11,3 +11,5 @@ Chilly, der Pinguin, soll für den Weihnachtsmann Geschenkpakete einsammeln. Hel
 Dieses Spielchen ist Teil einer Verlosung anlässlich des 40-jährigen Bestehens der Computerzeitschrift [c’t](https://ct.de). Mehr dazu in [c’t 28/2023, S. 58](https://www.heise.de/select/ct/2023/28/2329707360694897070).
 
 Viel Erfolg beim Schubsen!
+
+**[Jetzt spielen!](https://607011.github.io/chilly/)**
