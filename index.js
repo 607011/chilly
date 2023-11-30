@@ -143,8 +143,12 @@ window.exports = null;
     function onResize(e) {
         const GameElPadding = 5;
         viewPort = el.game.getBoundingClientRect();
+        // console.debug(viewPort, el.game.scrollWidth, el.game.clientWidth);
         viewPort.width -= 2 * GameElPadding;
         viewPort.height -= 2 * GameElPadding;
+        el.extraStyles.textContent = `:root {
+            --game-width: ${viewPort.width}px;
+        }`;
         scrollIntoView();
     }
 
@@ -783,7 +787,7 @@ window.exports = null;
         LEVELS = JSON.parse(document.querySelector('#levels').textContent);
         el.game = document.querySelector('#game');
         el.game.addEventListener('click', onClick);
-
+        el.extraStyles = document.querySelector('#extra-styles');
         el.moveCount = document.querySelector('#move-count');
         el.extras = document.querySelector('#extras');
         el.path = document.querySelector('#path');
