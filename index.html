@@ -35,6 +35,7 @@
             --text-color: #080808;
             --faint-text-color: #588997;
             --background-color: #B0E8F8;
+            --game-width: 1280px;
         }
 
         @font-face {
@@ -248,9 +249,10 @@
 
         #path {
             font-size: 50%;
-            max-width: fit-content;
             letter-spacing: .07em;
             margin-right: 0.5em;
+            word-wrap: anywhere;
+            max-width: var(--game-width);
         }
 
         .level-list {

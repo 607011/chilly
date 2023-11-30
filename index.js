@@ -74,7 +74,7 @@ window.exports = null;
         G: 20,
     };
 
-    let LEVELS;
+    let LEVELS = [];
     const START_LEVEL = 0;
     const DeceleratingEasing = bezier(.34, .87, 1, 1);
     const el = {};
@@ -86,25 +86,13 @@ window.exports = null;
         el: null,
         moves: [],
         distance: 0,
-        movementBounds: {
-            left: 0,
-            top: 0,
-            right: 0,
-            bottom: 0,
-        },
     };
     let autoplayIdx = 0;
     let autoplayMoves = '';
     let level = {
         origData: [],
         connections: [],
-        dumpConnections: function () {
-            for (const conn of level.connections) {
-                console.debug(`${conn.src.x},${conn.src.y} -> ${conn.dst.x},${conn.dst.y}`);
-            }
-        },
         data: [],
-        world: { width: 0, height: 0 },
         width: 0,
         height: 0,
         cellAt: function (x, y) {
@@ -112,6 +100,8 @@ window.exports = null;
         },
         currentIdx: 0,
     };
+    let world = { width: 0, height: 0 };
+    let viewPort = { x: 0, y: 0, width: 0, height: 0 };
     let state = State.PreInit;
     let prevState;
     let t0, t1, animationDuration;
@@ -137,8 +127,8 @@ window.exports = null;
     }
 
     function placePlayerOnPixel(x, y) {
-        player.world.x = (Tile.Size * x + level.world.width) % level.world.width;
-        player.world.y = (Tile.Size * y + 1 + level.world.height) % level.world.height;
+        player.world.x = Tile.Size * x;
+        player.world.y = Tile.Size * y + 1;
         player.el.style.left = `${player.world.x}px`;
         player.el.style.top = `${player.world.y}px`;
         scrollIntoView();
@@ -151,14 +141,18 @@ window.exports = null;
     }
 
     function onResize(e) {
-        // console.debug(player.world.x, level.width * Tile.Size, el.game.scrollWidth, getComputedStyle(el.game).width);
+        const GameElPadding = 5;
+        viewPort = el.game.getBoundingClientRect();
+        viewPort.width -= 2 * GameElPadding;
+        viewPort.height -= 2 * GameElPadding;
+        scrollIntoView();
     }
 
     function scrollIntoView() {
-        player.el.scrollIntoView({
+        el.game.scrollTo({
+            left: player.world.x - viewPort.width / 2,
+            top: player.world.y - viewPort.width / 2,
             behavior: 'auto',
-            block: 'center',
-            inline: 'center',
         });
     }
 
@@ -189,8 +183,8 @@ window.exports = null;
         const f = easing(dt / animationDuration);
         const dx = f * (player.dest.x - player.x);
         const dy = f * (player.dest.y - player.y);
-        player.world.x = Tile.Size * ((player.x + dx + level.width) % level.width);
-        player.world.y = Tile.Size * ((player.y + dy + level.height) % level.height);
+        player.world.x = Tile.Size * (player.x + dx);
+        player.world.y = Tile.Size * (player.y + dy);
         player.el.style.left = `${player.world.x}px`;
         player.el.style.top = `${player.world.y}px`;
         scrollIntoView();
@@ -243,7 +237,7 @@ window.exports = null;
         }
         player.world.x = Tile.Size * ((player.x + dx + level.width) % level.width);
         player.world.y = Tile.Size * ((player.y + dy + level.height) % level.height);
-        if (player.world.x < 0 || player.world.y < 0 || player.world.x > level.world.width - Tile.Size || player.world.y > level.world.height - Tile.Size) {
+        if (player.world.x < 0 || player.world.y < 0 || player.world.x > world.width - Tile.Size || player.world.y > world.height - Tile.Size) {
             player.el.classList.add('hidden');
         }
         else {
@@ -477,13 +471,11 @@ window.exports = null;
         checkAudio();
     }
 
-    function onMouseMove(e) {
-        // console.debug(e);
-    }
-
     function autoplay() {
         if (autoplayMoves.length === 0)
             return;
+        player.moves = [];
+        removeOverlay();
         restartGame();
         autoplayIdx = 0;
         setState(State.Autoplay);
@@ -493,7 +485,6 @@ window.exports = null;
     window.exports = {
         autoplay: function (moves) {
             autoplayMoves = moves;
-            player.moves = [];
             autoplay();
         },
     };
@@ -582,13 +573,13 @@ window.exports = null;
         congrats.querySelector('div>div>div').innerHTML = (function (numStars) {
             switch (numStars) {
                 case 0:
-                    return 'Danke für die Hilfe! Aber da geht noch so Einiges ...';
+                    return 'Danke für die Hilfe! Aber da geht noch so Einiges ;-)';
                 case 1:
                     return 'Gar nicht übel, aber es gibt noch Raum für Verbesserungen.';
                 case 2:
                     return 'Gute Arbeit! Du liegst ziemlich weit vorn mit dem Ergebnis.';
                 case 3:
-                    return 'Wow! Du bist ein herausragender Pinguin-Lotse!';
+                    return 'Wow! Du bist ein herausragender Pinguin-Lotse! Diese Zugfolge solltest du einsenden.';
                 default:
                     return;
             }
@@ -615,8 +606,8 @@ window.exports = null;
         level.origData = [...levelData.data];
         level.width = level.data[0].length;
         level.height = level.data.length;
-        level.world.width = Tile.Size * level.width;
-        level.world.height = Tile.Size * level.height;
+        world.width = Tile.Size * level.width;
+        world.height = Tile.Size * level.height;
         if (level.connections instanceof Array) {
             for (const conn of level.connections) {
                 console.assert(level.cellAt(conn.src.x, conn.src.y) === Tile.Hole);
@@ -792,7 +783,6 @@ window.exports = null;
         LEVELS = JSON.parse(document.querySelector('#levels').textContent);
         el.game = document.querySelector('#game');
         el.game.addEventListener('click', onClick);
-        el.game.addEventListener('mousemove', onMouseMove);
 
         el.moveCount = document.querySelector('#move-count');
         el.extras = document.querySelector('#extras');
