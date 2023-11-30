@@ -23,7 +23,7 @@
 import('./static/js/bezier.min.js');
 import('./static/js/howler.core.min.js');
 
-window.exports = null;
+window.exports = {};
 
 (function (window) {
     "use strict";
@@ -100,14 +100,13 @@ window.exports = null;
         },
         currentIdx: 0,
         collectibles: {},
+        tiles: [[]],
     };
     let world = { width: 0, height: 0 };
     let viewPort = { x: 0, y: 0, width: 0, height: 0 };
     let state = State.PreInit;
     let prevState;
     let t0, t1, animationDuration;
-    let tiles = [[]];
-    let holes = [];
     let isMoving = false;
     let exitReached = false;
     let holeEntered = false;
@@ -129,7 +128,7 @@ window.exports = null;
 
     function placePlayerOnPixel(x, y) {
         player.world.x = Tile.Size * x;
-        player.world.y = Tile.Size * y + 1;
+        player.world.y = Tile.Size * y;
         player.el.style.left = `${player.world.x}px`;
         player.el.style.top = `${player.world.y}px`;
         scrollIntoView();
@@ -144,7 +143,6 @@ window.exports = null;
     function onResize(e) {
         const GameElPadding = 5;
         viewPort = el.game.getBoundingClientRect();
-        // console.debug(viewPort, el.game.scrollWidth, el.game.clientWidth);
         viewPort.width -= 2 * GameElPadding;
         viewPort.height -= 2 * GameElPadding;
         el.extraStyles.textContent = `:root {
@@ -175,7 +173,7 @@ window.exports = null;
         player.el.style.transform = `rotate(${angle + Math.PI / 2}rad)`;
         standUpright();
         const dist = Math.sqrt(squared(player.x - player.dest.x) + squared(player.y - player.dest.y));
-        animationDuration = 100 * dist;
+        animationDuration = 84 * dist;
         t0 = performance.now();
         t1 = t0 + animationDuration;
         isMoving = true;
@@ -236,7 +234,7 @@ window.exports = null;
         const x = (player.x + Math.round(dx) + level.width) % level.width;
         const y = (player.y + Math.round(dy) + level.height) % level.height;
         if (level.data[y][x] === Tile.Coin) {
-            tiles[y][x].classList.replace('present', 'ice');
+            level.tiles[y][x].classList.replace('present', 'ice');
             delete level.collectibles[`${x},${y}`];
             level.data[y] = level.data[y].substring(0, x) + Tile.Ice + level.data[y].substring(x + 1);
             sounds.coin.play();
@@ -317,7 +315,7 @@ window.exports = null;
                 player.dest = { x, y };
             }
             easing = DeceleratingEasing;
-            animationDuration = 100 * dist;
+            animationDuration = 84 * dist;
             t0 = performance.now();
             t1 = t0 + animationDuration;
             animateRegularMove();
@@ -431,26 +429,12 @@ window.exports = null;
                         hasMoved = moveRight();
                         move = 'R';
                         break;
-                    case 'Escape':
-                        if (e.type === 'keydown') {
-                            showSettingsScreen();
-                            e.preventDefault();
-                            return;
-                        }
-                        break;
                 }
                 if (hasMoved) {
                     player.moves.push(move);
                 }
                 break;
             default:
-                if (e.type === 'keydown' && e.key === 'Escape') {
-                    if (state != State.SplashScreen) {
-                        showSettingsScreen();
-                    }
-                    e.preventDefault();
-                    return;
-                }
                 break;
         }
     }
@@ -499,12 +483,11 @@ window.exports = null;
         const scene = document.createElement('div');
         scene.style.gridTemplateColumns = `repeat(${level.width}, ${Tile.Size}px)`;
         scene.style.gridTemplateRows = `repeat(${level.height}, ${Tile.Size}px)`;
-        holes = [];
-        tiles = [];
+        level.tiles = [];
         level.collectibles = {};
         for (let y = 0; y < level.data.length; ++y) {
             const row = level.data[y];
-            tiles.push([]);
+            level.tiles.push([]);
             for (let x = 0; x < row.length; ++x) {
                 const item = row[x];
                 const tile = document.createElement('span');
@@ -535,7 +518,6 @@ window.exports = null;
                         break;
                     case Tile.Hole:
                         tile.classList.add('hole');
-                        holes.push({ x, y });
                         break;
                     case Tile.Player:
                         placePlayerOnTile(x, y);
@@ -546,7 +528,7 @@ window.exports = null;
                         break;
                 }
                 scene.appendChild(tile);
-                tiles[y].push(tile);
+                level.tiles[y].push(tile);
             }
         }
         return scene;
@@ -570,7 +552,6 @@ window.exports = null;
         setState(State.LevelEnd);
         const itemsLeft = Object.keys(level.collectibles).length > 0;
         const congrats = el.congratsTemplate.content.cloneNode(true);
-        // congrats.querySelector('div.pulsating > span').textContent = level.currentIdx + 1 + 1;
         const stars = congrats.querySelectorAll('.star-pale');
         if (itemsLeft) {
             congrats.querySelector('div>div>div').innerHTML = 'Du hast Chilly zum Ausgang gelotst, aber du hast Geschenke liegen lassen. Der nächste Versuch gelingt bestimmt&nbsp;...';
@@ -599,31 +580,12 @@ window.exports = null;
                 }
             })(numStars);
         }
-        el.proceed = congrats.querySelector('[data-command="proceed"]');
-        if (level.currentIdx + 1 < LEVELS.length) {
-            congrats.querySelector('[data-command="restart"]').remove();
-            el.proceed.addEventListener('click', gotoNextLevel, { capture: true, once: true });
-        }
-        else {
-            el.proceed.remove();
-            setState(State.GameEnd);
-        }
+        setState(State.GameEnd);
         el.replay = congrats.querySelector('[data-command="replay"]');
         el.replay.addEventListener('click', replayLevel, { capture: true, once: true });
         el.overlayBox.replaceChildren(congrats);
         t0 = performance.now();
         showOverlay();
-    }
-
-    function hasCollectibles(level) {
-        return level.some(row => row.match('[\$G]'));
-    }
-
-    /**
-     * @return  true, if level has collectibles, false otherwise
-     */
-    function levelHasCollectibles() {
-        return hasCollectibles(level.origData);
     }
 
     function setLevel(levelData) {
@@ -715,34 +677,6 @@ window.exports = null;
         showOverlay();
     }
 
-    function showSettingsScreen() {
-        setState(State.SettingsScreen);
-        const settings = el.settingsTemplate.content.cloneNode(true);
-        const lvlList = settings.querySelector('.level-list');
-        const padding = 1 + Math.floor(Math.log10(LEVELS.length));
-        const highestAccessibleLevelNum = maxLevelNum();
-        let i = 0;
-        for (const level of LEVELS) {
-            const lvlName = level.name || '<?>';
-            const div = document.createElement('div');
-            div.textContent = `Level ${(i + 1).toString().padStart(padding, ' ')}: ${lvlName}`;
-            div.setAttribute('data-level-idx', i);
-            if (i < highestAccessibleLevelNum) {
-                div.addEventListener('click', e => {
-                    removeOverlay();
-                    gotoLevel(e.target.getAttribute('data-level-idx') | 0);
-                });
-            }
-            else {
-                div.classList.add('locked');
-            }
-            lvlList.appendChild(div);
-            ++i;
-        }
-        el.overlayBox.replaceChildren(settings);
-        showOverlay();
-    }
-
     function resetLevel() {
         exitReached = false;
         let levelData = LEVELS[level.currentIdx];
@@ -820,7 +754,6 @@ window.exports = null;
         document.querySelector('#restart-level').addEventListener('click', resetLevel);
         el.splashTemplate = document.querySelector("#splash");
         el.congratsTemplate = document.querySelector("#congrats");
-        el.settingsTemplate = document.querySelector("#settings");
         player.el = document.createElement('span');
         player.el.className = `tile penguin ${Tiles.PenguinUpright}`;
         setupAudio();
