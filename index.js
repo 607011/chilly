@@ -99,6 +99,7 @@ window.exports = null;
             return level.data[(y + level.height) % level.height][(x + level.width) % level.width];
         },
         currentIdx: 0,
+        collectibles: {},
     };
     let world = { width: 0, height: 0 };
     let viewPort = { x: 0, y: 0, width: 0, height: 0 };
@@ -236,6 +237,7 @@ window.exports = null;
         const y = (player.y + Math.round(dy) + level.height) % level.height;
         if (level.data[y][x] === Tile.Coin) {
             tiles[y][x].classList.replace('present', 'ice');
+            delete level.collectibles[`${x},${y}`];
             level.data[y] = level.data[y].substring(0, x) + Tile.Ice + level.data[y].substring(x + 1);
             sounds.coin.play();
         }
@@ -499,6 +501,7 @@ window.exports = null;
         scene.style.gridTemplateRows = `repeat(${level.height}, ${Tile.Size}px)`;
         holes = [];
         tiles = [];
+        level.collectibles = {};
         for (let y = 0; y < level.data.length; ++y) {
             const row = level.data[y];
             tiles.push([]);
@@ -515,9 +518,11 @@ window.exports = null;
                         break;
                     case Tile.Coin:
                         tile.classList.add('present');
+                        level.collectibles[`${x},${y}`] = item;
                         break;
                     case Tile.Gold:
                         tile.classList.add('gold');
+                        level.collectibles[`${x},${y}`] = item;
                         break;
                     case Tile.Flower:
                         tile.classList.add('flower');
@@ -563,31 +568,37 @@ window.exports = null;
         sounds.exit.play();
         standUpright();
         setState(State.LevelEnd);
+        const itemsLeft = Object.keys(level.collectibles).length > 0;
         const congrats = el.congratsTemplate.content.cloneNode(true);
-        congrats.querySelector('div.pulsating > span').textContent = level.currentIdx + 1 + 1;
+        // congrats.querySelector('div.pulsating > span').textContent = level.currentIdx + 1 + 1;
         const stars = congrats.querySelectorAll('.star-pale');
-        const numStars = getNumStars();
-        for (let i = 0; i < numStars; ++i) {
-            stars[i].classList.replace('star-pale', 'star');
-            stars[i].classList.add('pulse')
-            if (i > 0) {
-                stars[i].classList.add(`pulse${i}`);
-            }
+        if (itemsLeft) {
+            congrats.querySelector('div>div>div').innerHTML = 'Du hast Chilly zum Ausgang gelotst, aber du hast Geschenke liegen lassen. Der nächste Versuch gelingt bestimmt&nbsp;...';
         }
-        congrats.querySelector('div>div>div').innerHTML = (function (numStars) {
-            switch (numStars) {
-                case 0:
-                    return 'Danke für die Hilfe! Aber da geht noch so Einiges ;-)';
-                case 1:
-                    return 'Gar nicht übel, aber es gibt noch Raum für Verbesserungen.';
-                case 2:
-                    return 'Gute Arbeit! Du liegst ziemlich weit vorn mit dem Ergebnis.';
-                case 3:
-                    return 'Wow! Du bist ein herausragender Pinguin-Lotse! Diese Zugfolge solltest du einsenden.';
-                default:
-                    return;
+        else {
+            const numStars = getNumStars();
+            for (let i = 0; i < numStars; ++i) {
+                stars[i].classList.replace('star-pale', 'star');
+                stars[i].classList.add('pulse')
+                if (i > 0) {
+                    stars[i].classList.add(`pulse${i}`);
+                }
             }
-        })(numStars);
+            congrats.querySelector('div>div>div').innerHTML = (function (numStars) {
+                switch (numStars) {
+                    case 0:
+                        return 'Danke für die Hilfe! Aber da geht noch so Einiges ;-)';
+                    case 1:
+                        return 'Gar nicht übel, aber es gibt noch Raum für Verbesserungen.';
+                    case 2:
+                        return 'Gute Arbeit! Du liegst ziemlich weit vorn mit dem Ergebnis.';
+                    case 3:
+                        return 'Wow! Du bist ein herausragender Pinguin-Lotse! Diese Zugfolge solltest du einsenden.';
+                    default:
+                        return;
+                }
+            })(numStars);
+        }
         el.proceed = congrats.querySelector('[data-command="proceed"]');
         if (level.currentIdx + 1 < LEVELS.length) {
             congrats.querySelector('[data-command="restart"]').remove();
@@ -602,6 +613,17 @@ window.exports = null;
         el.overlayBox.replaceChildren(congrats);
         t0 = performance.now();
         showOverlay();
+    }
+
+    function hasCollectibles(level) {
+        return level.some(row => row.match('[\$G]'));
+    }
+
+    /**
+     * @return  true, if level has collectibles, false otherwise
+     */
+    function levelHasCollectibles() {
+        return hasCollectibles(level.origData);
     }
 
     function setLevel(levelData) {
