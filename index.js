@@ -218,7 +218,7 @@ window.exports = {};
                 moveTo(direction);
             }
             else {
-                restoreState();
+                setState(State.Playing);
             }
         }
     }
