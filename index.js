@@ -154,7 +154,7 @@ window.exports = {};
     function scrollIntoView() {
         el.game.scrollTo({
             left: player.world.x - viewPort.width / 2,
-            top: player.world.y - viewPort.width / 2,
+            top: player.world.y - viewPort.height / 2,
             behavior: 'auto',
         });
     }
