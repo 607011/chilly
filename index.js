@@ -471,7 +471,7 @@ window.exports = {};
         restartGame();
         autoplayIdx = 0;
         setState(State.Autoplay);
-        moveTo(autoplayMoves[0]);
+        checkAutoplay();
     }
 
     window.exports = {
