@@ -479,9 +479,6 @@ window.exports = {};
             autoplayMoves = moves;
             autoplay();
         },
-        setState: function (state) {
-            setState(state);
-        },
     };
 
     function generateScene() {
