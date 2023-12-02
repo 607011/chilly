@@ -213,7 +213,9 @@ window.exports = {};
     function checkAutoplay() {
         if (state === State.Autoplay) {
             if (autoplayIdx < autoplayMoves.length) {
-                moveTo(autoplayMoves[++autoplayIdx]);
+                const direction = autoplayMoves[autoplayIdx];
+                ++autoplayIdx;
+                moveTo(direction);
             }
             else {
                 restoreState();
