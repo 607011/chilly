@@ -442,24 +442,6 @@ window.exports = {};
     }
 
     function onClick(e) {
-        const dx = (e.target.offsetLeft / Tile.Size) - player.x;
-        const dy = (e.target.offsetTop / Tile.Size) - player.y;
-        if (Math.abs(dx) > Math.abs(dy)) {
-            if (dx > 0) {
-                window.dispatchEvent(new KeyboardEvent('keypress', { 'key': 'd' }));
-            }
-            else {
-                window.dispatchEvent(new KeyboardEvent('keypress', { 'key': 'a' }));
-            }
-        }
-        else {
-            if (dy > 0) {
-                window.dispatchEvent(new KeyboardEvent('keypress', { 'key': 's' }));
-            }
-            else {
-                window.dispatchEvent(new KeyboardEvent('keypress', { 'key': 'w' }));
-            }
-        }
         checkAudio();
     }
 
@@ -494,6 +476,7 @@ window.exports = {};
                 const item = row[x];
                 const tile = document.createElement('span');
                 tile.className = 'tile';
+                tile.title = `${x},${y}`;
                 switch (item) {
                     case Tile.Rock:
                         tile.classList.add('rock');
@@ -653,13 +636,6 @@ window.exports = {};
         }
         maxLvl = Math.max(level.currentIdx, Math.min(LEVELS.length, maxLvl));
         return maxLvl;
-    }
-
-    function gotoLevel(idx) {
-        level.currentIdx = idx;
-        localStorage.setItem(StorageKey.LevelNum, level.currentIdx);
-        resetLevel();
-        play();
     }
 
     function gotoNextLevel() {
